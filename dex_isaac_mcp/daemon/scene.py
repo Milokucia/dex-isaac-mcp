@@ -17,7 +17,7 @@ from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets import Articulation, ArticulationCfg
 from pxr import Usd, UsdPhysics
 
-from ..robot import Robot, match
+from ..robot import Robot, match, match_ordered
 
 
 def expand_usd(path: str) -> str:
@@ -168,7 +168,7 @@ class RobotScene:
     def bind(self) -> None:
         """Resolve joint indices, limits and couplings. Call after sim.reset()."""
         names = list(self.art.joint_names)
-        driven = match(self.robot.driven_joints, names)
+        driven = match_ordered(self.robot.driven_joints, names)
         passive = set(match(self.robot.passive_joints, names))
         driven = [n for n in driven if n not in passive]
         if not driven:

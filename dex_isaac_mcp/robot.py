@@ -146,6 +146,19 @@ def match(patterns: list[str], names: list[str]) -> list[str]:
     return [n for n in names if any(c.fullmatch(n) for c in compiled)]
 
 
+def match_ordered(patterns: list[str], names: list[str]) -> list[str]:
+    """Names fully matching any pattern, in PATTERN order (then `names` order within one).
+
+    Used for the driven joints, so the order a config lists them in is the
+    order of every `unit` vector, not whatever order the USD happens to store.
+    """
+    out: list[str] = []
+    for p in patterns:
+        c = re.compile(p)
+        out += [n for n in names if c.fullmatch(n) and n not in out]
+    return out
+
+
 def resolve_pose(pose: dict[str, float], names: list[str], amount: float = 1.0,
                  base: dict[str, float] | None = None) -> dict[str, float]:
     """Expand a pose's joint patterns to concrete names, blended toward `base`.

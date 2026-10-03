@@ -3,6 +3,7 @@
   "usd": "{ISAAC_NUCLEUS_DIR}/Robots/WonikRobotics/AllegroHand/allegro_hand_instanceable.usd",
   "fix_root_link": true,
   "spawn_pos": [0.0, 0.0, 0.5],
+  "init_joint_pos": {"^(?!thumb_joint_0).*": 0.0, "thumb_joint_0": 0.28},
   "driven_joints": [".*"],
   "actuator": {"stiffness": 3.0, "damping": 0.1, "effort": 0.5},
   "camera": {"eye": [0.35, 0.35, 0.75], "target": [0.0, 0.0, 0.5]},

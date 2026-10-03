@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from mcp.server import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ImageContent
 
 from . import training
@@ -52,23 +53,34 @@ mcp = MCPServer(
 )
 
 
+# Every deliberate failure is a ToolError: MCP passes its text to the client.
+# Any other exception reaches the client only as "Error executing tool <name>",
+# which would throw away every explanation written below.
+
+
+class DaemonError(ToolError):
+    """The daemon answered with an error (e.g. a diverging solver mid-sweep)."""
+
+
 def _call(cmd: str, **args: Any) -> Any:
     """One request against the daemon, with a legible error if it is not up."""
     try:
         with Client(DEFAULT_SOCKET) as client:
             return client.call(cmd, **args)
     except FileNotFoundError:
-        raise RuntimeError(f"no daemon socket at {DEFAULT_SOCKET}. Start it with sim_up.") from None
+        raise ToolError(f"no daemon socket at {DEFAULT_SOCKET}. Start it with sim_up.") from None
     except ConnectionRefusedError:
-        raise RuntimeError(f"stale socket at {DEFAULT_SOCKET} — the daemon died without "
-                           "cleaning up. Call sim_up to restart it.") from None
+        raise ToolError(f"stale socket at {DEFAULT_SOCKET} — the daemon died without "
+                        "cleaning up. Call sim_up to restart it.") from None
+    except ProtocolError as exc:
+        raise DaemonError(str(exc)) from None
 
 
 def _training(fn, *args: Any, **kwargs: Any) -> Any:
     try:
         return fn(*args, **kwargs)
     except training.TrainingError as exc:
-        raise RuntimeError(str(exc)) from None
+        raise ToolError(str(exc)) from None
 
 
 # ---- lifecycle ---------------------------------------------------------
@@ -79,7 +91,7 @@ def sim_status() -> dict[str, Any]:
     """Report whether the sim daemon is up, its robot, driven joints, poses and parameters."""
     try:
         return {"up": True, **_call("status")}
-    except (RuntimeError, ProtocolError) as exc:
+    except ToolError as exc:
         return {"up": False, "reason": str(exc)}
 
 
@@ -99,7 +111,7 @@ def sim_up(robot: str | None = None, usd: str | None = None, gui: bool = True,
     """
     try:
         return {"already_up": True, **_call("status")}
-    except (RuntimeError, ProtocolError):
+    except ToolError:
         pass
 
     # A socket left by a hard-killed daemon would make the wait succeed against nothing.
@@ -121,24 +133,24 @@ def sim_up(robot: str | None = None, usd: str | None = None, gui: bool = True,
     cmd += extra_args or []
     result = subprocess.run(cmd, cwd=_COMPOSE_DIR, capture_output=True, text=True)
     if result.returncode != 0:
-        raise RuntimeError(f"docker compose run failed: {result.stderr.strip()}")
+        raise ToolError(f"docker compose run failed: {result.stderr.strip()}")
 
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         if sock.exists():
             try:
                 return {"already_up": False, **_call("status")}
-            except (RuntimeError, ProtocolError, OSError):
+            except (ToolError, OSError):
                 pass
         elif subprocess.run(["docker", "inspect", _SIMD_CONTAINER],
                             capture_output=True).returncode != 0:
             # --rm already deleted it, and its traceback with it.
-            raise RuntimeError(
+            raise ToolError(
                 "the daemon container exited during startup. Re-run it in the foreground "
                 f"to see the error: cd {_COMPOSE_DIR} && docker compose run --rm "
                 f"{_SIMD_SERVICE} {' '.join(cmd[cmd.index(_SIMD_SERVICE) + 1:])}")
         time.sleep(1.0)
-    raise RuntimeError(f"daemon did not come up within {timeout:.0f}s. "
+    raise ToolError(f"daemon did not come up within {timeout:.0f}s. "
                        f"Check: docker logs {_SIMD_CONTAINER}")
 
 
@@ -147,7 +159,7 @@ def sim_down() -> dict[str, Any]:
     """Stop the sim daemon; its container removes itself."""
     try:
         return {"stopped": True, "result": _call("shutdown")}
-    except (RuntimeError, ProtocolError) as exc:
+    except ToolError as exc:
         return {"stopped": False, "reason": str(exc)}
 
 
@@ -275,7 +287,7 @@ def sim_set_params(stiffness: float | None = None, damping: float | None = None,
     changes = {k: v for k, v in {"stiffness": stiffness, "damping": damping,
                                  "effort": effort}.items() if v is not None}
     if not changes:
-        raise ValueError("pass at least one parameter")
+        raise ToolError("pass at least one parameter")
     return _call("set_params", **changes)
 
 
@@ -316,20 +328,20 @@ def sim_sweep(param: str, values: list[float], steps: int = 240,
     solver is recorded as a result, not raised.
     """
     if test not in ("wave", "range"):
-        raise ValueError("test must be 'wave' or 'range'")
+        raise ToolError("test must be 'wave' or 'range'")
     status = _call("status")
     if param.startswith("coupling:"):
         follower = param.split(":", 1)[1]
         current = {c["follower"]: c["ratio"] for c in status["couplings"]}
         if follower not in current:
-            raise ValueError(f"no coupling for {follower!r}; known: {sorted(current)}")
+            raise ToolError(f"no coupling for {follower!r}; known: {sorted(current)}")
         original: Any = current[follower]
         apply = lambda v: _call("set_coupling", ratios={follower: v})  # noqa: E731
     elif param in ("stiffness", "damping", "effort"):
         original = status["params"][param]
         apply = lambda v: _call("set_params", **{param: v})  # noqa: E731
     else:
-        raise ValueError(f"cannot sweep {param!r} live. Sweepable: stiffness, damping, effort, "
+        raise ToolError(f"cannot sweep {param!r} live. Sweepable: stiffness, damping, effort, "
                          "coupling:<follower>. For spawn properties use sim_reload between runs.")
 
     rows = []
@@ -355,7 +367,7 @@ def sim_sweep(param: str, values: list[float], steps: int = 240,
                     rows.append({param: v, **{k: rep[k] for k in
                                  ("arrived", "n", "mean_frac", "worst_joint", "worst_frac")},
                                  "joints": rep["joints"]})
-            except ProtocolError as exc:
+            except DaemonError as exc:
                 rows.append({param: v, "error": str(exc)})
     finally:
         apply(original)

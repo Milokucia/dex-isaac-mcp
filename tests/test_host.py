@@ -9,7 +9,7 @@ from pathlib import Path
 
 from dex_isaac_mcp import training
 from dex_isaac_mcp.protocol import Client, LineReader, ProtocolError, encode
-from dex_isaac_mcp.robot import Robot, match, resolve_pose
+from dex_isaac_mcp.robot import Robot, match, match_ordered, resolve_pose
 
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples" / "robots"
 
@@ -72,6 +72,9 @@ class RobotTest(unittest.TestCase):
 
     def test_match_is_full_match(self):
         self.assertEqual(match(["joint_1"], ["joint_1", "joint_10"]), ["joint_1"])
+
+    def test_match_ordered_follows_patterns(self):
+        self.assertEqual(match_ordered(["c", "a.*"], ["a1", "b", "c", "a2"]), ["c", "a1", "a2"])
 
     def test_pose_blend_and_override(self):
         names = ["a_0", "a_1", "b_0"]

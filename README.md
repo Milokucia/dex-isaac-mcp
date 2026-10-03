@@ -215,12 +215,12 @@ with Client() as c:
 
 ## Status
 
-Tested against Isaac Lab 2.3.2 (Isaac Sim 5.x) and `mcp` 2.3:
+Tested against Isaac Lab 2.3.2 (Isaac Sim 5.x) and `mcp` 2.3, over the stdio protocol, with the GUI on:
 
-- Headless daemon with the Franka example: poses, gains, wave, range test.
-- All 26 tools register and answer over stdio.
+- **Franka** and **Allegro** examples, plus a custom closed-linkage hand through a compose override: `sim_up`, poses, screenshots, `sim_range_test`, `sim_sweep` (restores the original value), `sim_down`.
+- Headless daemon: gains, frozen-parameter rejection, wave.
 
-Not yet verified end to end: the GUI screenshot path through `sim_up`, the Allegro joint names in its example poses, and the training tools against the stock skrl script. Issues and PRs are welcome.
+Not yet verified end to end: the `train_*` tools against Isaac Lab's stock skrl script. Issues and PRs are welcome.
 
 ## License
 
