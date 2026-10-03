@@ -68,6 +68,9 @@ class SimDaemon:
         self.on_world_built = None
         self.unit: torch.Tensor | None = None
 
+        self._capturer = None
+        self._view_dir = [1.0, 0.0, 0.3]
+
         self._pending: queue.Queue[_Request] = queue.Queue()
         self._stop = threading.Event()
         self._server: socket.socket | None = None
@@ -329,6 +332,67 @@ class SimDaemon:
         from . import objects
 
         return objects.remove(name)
+
+    def _cap(self):
+        if self._capturer is None:
+            from .capture import Capturer
+
+            self._capturer = Capturer()
+            scene = self._require_scene()
+            scene.post_step = self._capturer.on_step
+            # Start framed on the robot: an unplaced camera sits at the origin
+            # looking at nothing, and a first sim_capture came back blank.
+            self._capturer.fit(scene.prim_path, self._view_dir)
+        return self._capturer
+
+    def _recordings(self) -> Path:
+        return self.socket_path.parent / "recordings"
+
+    def cmd_frame_robot(self, direction: list[float] | None = None, margin: float = 1.15,
+                        width: int = 640, height: int = 480,
+                        raise_frac: float = 0.0) -> dict[str, Any]:
+        """Aim the capture camera so the whole robot fills the frame."""
+        if direction is not None:
+            self._view_dir = list(direction)
+        scene = self._require_scene()
+        return self._cap().fit(scene.prim_path, self._view_dir, margin, width, height, raise_frac)
+
+    def cmd_set_capture_camera(self, eye: list[float], target: list[float]) -> dict[str, Any]:
+        self._cap().look_at(eye, target)
+        self._view_dir = [e - t for e, t in zip(eye, target, strict=True)]
+        return {"eye": eye, "target": target}
+
+    def cmd_set_backdrop(self, color: list[float] | None = None, size: float = 4.0) -> dict[str, Any]:
+        """A plain panel behind the robot, facing the capture camera. color=None removes it."""
+        import omni.usd
+        from pxr import Usd, UsdGeom
+
+        stage = omni.usd.get_context().get_stage()
+        cache = UsdGeom.BBoxCache(Usd.TimeCode.Default(), [UsdGeom.Tokens.default_])
+        box = cache.ComputeWorldBound(
+            stage.GetPrimAtPath(self._require_scene().prim_path)).ComputeAlignedRange()
+        c = box.GetMidpoint()
+        return self._cap().backdrop(color, [c[0], c[1], c[2]], self._view_dir, size)
+
+    def cmd_capture(self, width: int = 640, height: int = 480) -> dict[str, Any]:
+        """A frame from the capture camera. Works headless."""
+        return {"png_base64": self._cap().png_base64(int(width), int(height))}
+
+    def cmd_record_start(self, every: int = 2, width: int = 640, height: int = 480,
+                         caption: str = "") -> dict[str, Any]:
+        cap = self._cap()
+        cap.caption = caption
+        cap.start(every, int(width), int(height))
+        return {"recording": True, "every": cap.every}
+
+    def cmd_record_caption(self, text: str) -> dict[str, Any]:
+        self._cap().caption = text
+        return {"caption": text}
+
+    def cmd_record_stop(self, name: str = "recording", fps: float = 30.0,
+                        hold_last: float = 1.0) -> dict[str, Any]:
+        safe = "".join(ch for ch in name if ch.isalnum() or ch in "-_") or "recording"
+        return self._cap().stop(self._recordings() / f"{safe}.gif", fps, hold_last)
 
     def cmd_play(self) -> dict[str, Any]:
         self.playing = True

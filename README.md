@@ -2,6 +2,10 @@
 
 <!-- mcp-name: io.github.Milokucia/dex-isaac-mcp -->
 
+![An agent driving the Allegro hand through dex-isaac-mcp](https://raw.githubusercontent.com/Milokucia/dex-isaac-mcp/main/docs/demo.gif)
+
+*Recorded headless with the server's own tools (`sim_frame_robot`, `sim_set_backdrop`, `sim_record_start`), driving the Allegro hand example. Each caption is the request and the tool call it became.*
+
 An [MCP](https://modelcontextprotocol.io) server that lets an AI agent (Claude Code, or any MCP client) drive a **live, persistent Isaac Sim session** and launch **Isaac Lab training runs**.
 
 Kit takes tens of seconds to boot. If every experiment is a fresh launch, most of your time goes to waiting. Here Kit starts once inside a daemon and stays up. Each tool call lands in that running session, so changing a gain, stepping physics or taking a screenshot costs a frame, not a relaunch.
@@ -19,6 +23,7 @@ Kit takes tens of seconds to boot. If every experiment is a fresh launch, most o
 - **Any articulated robot.** Point it at a USD and a small JSON config. Franka and Allegro examples are included.
 - **Normalized joint control.** Targets are `0..1`, where 0 is a joint's lower limit and 1 its upper limit, so agents don't need to know radians or meters.
 - **Named poses** per robot (`home`, `fist`, …), which can be blended part-way.
+- **Headless capture and GIF recording** from an auto-framed camera, with captions. The clip above was made this way.
 - **Props:** spawn a table, a ball or a USD into the running scene and read back where they settle.
 - **Measurements:** joint state, per-joint travel and tracking error, a range test that finds blocked joints, and parameter sweeps inside one session.
 - **Training control:** each run is a detached `docker compose run`. You can poll its status, TensorBoard scalars, checkpoints and logs.
@@ -112,6 +117,18 @@ docker compose run --rm simd scripts/simd.py --sliders --robot examples/robots/a
 | `sim_spawn_object` | Add a prop to the live scene: `cuboid`, `sphere`, `cylinder`, `capsule`, `cone` or a USD file, with collision. `static` for a fixed table or wall, `kinematic` for a body contact cannot move |
 | `sim_list_objects` | Every prop's current world pose |
 | `sim_remove_object` | Delete a prop |
+
+### Capture and record
+
+These work headless, with no GUI or viewport. They use a dedicated camera that is independent of the GUI view.
+
+| Tool | What it does |
+|---|---|
+| `sim_frame_robot` | Aim the capture camera so the whole robot fills the frame, from a given direction. `raise_frac` leaves room for captions |
+| `sim_set_capture_camera` | Place the capture camera by hand |
+| `sim_set_backdrop` | A plain colored panel behind the robot. Use it with `ground=False` for clean footage |
+| `sim_capture` | One frame, returned as an image |
+| `sim_record_start` / `sim_record_caption` / `sim_record_stop` | Record every Nth physics step, with a caption drawn on each frame, to an animated GIF under `.cache/recordings/`. Anything that steps the sim is recorded |
 
 ### Tune
 
@@ -216,6 +233,7 @@ These are the constraints the code is built around. Most were learned by breakin
 - **The host side imports no Isaac code.** `protocol.py`, `robot.py` and `training.py` are stdlib-only. The MCP server adds only `mcp`. Nothing on the host needs isaaclab, torch or a GPU.
 - **Cache directories are committed with `.gitkeep`.** If Docker auto-creates a bind-mount source, it is root-owned, and Kit then dies with `registry cache path is not set` before any script runs.
 - **The base image is pinned by digest.** A re-pulled tag once shipped `/isaac-sim` as mode 750, and every non-root container lost its Python.
+- **Recorded GIFs are stabilized.** The renderer's denoiser shimmers: between two frames of a motionless scene, about 9% of background pixels change slightly, and a GIF re-encodes every one of them. Holding sub-threshold changes and using one shared palette took a 9-second clip from 15 MB to 1.2 MB.
 - **The daemon always renders, even headless** (`enable_cameras`). Without rendering, PhysX never registers a prop spawned at runtime. Prop poses are read from fabric, because the USD transform and the PhysX CPU query both stay at the spawn pose, and creating a PhysX tensor view mid-simulation crashes CUDA.
 - **No floor for range tests** (`ground=False`) on anything whose links can reach the ground. Otherwise the test measures the floor, not the robot.
 
@@ -241,6 +259,7 @@ Tested against Isaac Lab 2.3.2 (Isaac Sim 5.x) and `mcp` 2.3, over the stdio pro
 
 - **Franka** and **Allegro** examples, plus a custom closed-linkage hand through a compose override: `sim_up`, poses, screenshots, `sim_range_test`, `sim_sweep` (restores the original value), `sim_down`.
 - Headless daemon: gains, frozen-parameter rejection, wave.
+- Headless capture and recording, Allegro and Franka: auto-framing, backdrop, captions, GIF output (the clip at the top).
 - Props, GUI and headless: a sphere and a cylinder dropped onto a static table settle at exactly table height plus their radius and half-height.
 
 - Training, against Isaac Lab's stock skrl script: `Isaac-Cartpole-v0` launched, polled, logged, checkpointed and read back through every `train_*` tool, plus a run stopped mid-training. skrl's `write_interval: auto` writes no TensorBoard scalars on a very short run (5 iterations), so `train_metrics` comes back empty there; 50 iterations gives 18 tags.

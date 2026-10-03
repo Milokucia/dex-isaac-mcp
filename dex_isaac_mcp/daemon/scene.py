@@ -121,6 +121,9 @@ class RobotScene:
         self.params = params
         self.prim_path = prim_path
         self.couplings = list(robot.couplings)
+        # Called after every physics step (recording hooks in here, so range
+        # tests and waves are recorded too, not only sim_step).
+        self.post_step = None
         self.art = self._spawn()
         # bind() must be called after sim.reset(): joint limits come from the
         # PhysX articulation view, which does not exist until then.
@@ -267,6 +270,8 @@ class RobotScene:
         if self._last_target is not None:
             self.err_sum += (self._last_target[0] - q[self.driven_ids]).abs()
         self.steps += 1
+        if self.post_step is not None:
+            self.post_step()
 
     # ---- measurement --------------------------------------------------
 

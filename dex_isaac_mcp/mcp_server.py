@@ -354,6 +354,82 @@ def sim_screenshot() -> ImageContent:
     return ImageContent(type="image", data=result["png_base64"], mimeType="image/png")
 
 
+# ---- capture and recording ----------------------------------------------
+
+
+def _host_path(container_path: str) -> str:
+    """The daemon reports container paths; recordings live under the shared .cache/."""
+    marker = "/.cache/"
+    if marker in container_path:
+        return str(Path(DEFAULT_SOCKET).parent / container_path.split(marker, 1)[1])
+    return container_path
+
+
+@mcp.tool()
+def sim_frame_robot(direction: list[float] | None = None, margin: float = 1.15,
+                    width: int = 640, height: int = 480, raise_frac: float = 0.0) -> dict[str, Any]:
+    """Aim the capture camera so the whole robot fills the frame.
+
+    direction points from the robot toward the camera, e.g. [1, 0, 0.3] for a
+    front view slightly from above (default: the last direction used).
+    margin > 1 leaves room around the robot. raise_frac lifts it in the frame
+    (fraction of its size), e.g. 0.15 to clear recording captions.
+    Then sim_capture or sim_record_start.
+    """
+    return _call("frame_robot", **({"direction": direction} if direction else {}),
+                 margin=margin, width=width, height=height, raise_frac=raise_frac)
+
+
+@mcp.tool()
+def sim_set_capture_camera(eye: list[float], target: list[float]) -> dict[str, Any]:
+    """Place the capture camera by hand (sim_frame_robot does it automatically)."""
+    return _call("set_capture_camera", eye=eye, target=target)
+
+
+@mcp.tool()
+def sim_set_backdrop(color: list[float] | None = None, size: float = 4.0) -> dict[str, Any]:
+    """Put a plain panel (RGB 0..1) behind the robot, facing the capture camera; no color removes it.
+
+    For clean footage, also start the daemon with ground=False.
+    """
+    return _call("set_backdrop", color=color, size=size)
+
+
+@mcp.tool()
+def sim_capture(width: int = 640, height: int = 480) -> ImageContent:
+    """A frame from the capture camera. Works headless; no GUI or viewport needed."""
+    result = _call("capture", width=width, height=height)
+    return ImageContent(type="image", data=result["png_base64"], mimeType="image/png")
+
+
+@mcp.tool()
+def sim_record_start(every: int = 2, width: int = 640, height: int = 480,
+                     caption: str = "") -> dict[str, Any]:
+    """Start recording the capture camera: one frame every `every` physics steps.
+
+    Everything that steps the sim is recorded (sim_step, sim_wave, sim_range_test).
+    caption is drawn along the bottom of each frame; change it with sim_record_caption.
+    """
+    return _call("record_start", every=every, width=width, height=height, caption=caption)
+
+
+@mcp.tool()
+def sim_record_caption(text: str) -> dict[str, Any]:
+    """Change the caption drawn on frames recorded from now on ('' for none)."""
+    return _call("record_caption", text=text)
+
+
+@mcp.tool()
+def sim_record_stop(name: str = "recording", fps: float = 30.0, hold_last: float = 1.0) -> dict[str, Any]:
+    """Stop recording and write an animated GIF; returns its path on the host.
+
+    At the default every=2 and dt=1/120, fps=30 plays back at half speed; 60 is real time.
+    """
+    result = _call("record_stop", name=name, fps=fps, hold_last=hold_last)
+    result["path"] = _host_path(result["path"])
+    return result
+
+
 # ---- sweeps ------------------------------------------------------------
 
 
