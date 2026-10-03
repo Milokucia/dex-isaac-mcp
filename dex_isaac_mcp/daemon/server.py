@@ -311,6 +311,25 @@ class SimDaemon:
         rep["params"] = self.params.to_dict()
         return rep
 
+    def cmd_spawn_object(self, **kwargs: Any) -> dict[str, Any]:
+        from . import objects
+
+        self._require_scene()
+        out = objects.spawn(**kwargs)
+        # One frame so PhysX has parsed the new prim before anyone asks its pose.
+        self._advance(1)
+        return out
+
+    def cmd_list_objects(self) -> dict[str, Any]:
+        from . import objects
+
+        return {"objects": objects.poses()}
+
+    def cmd_remove_object(self, name: str) -> dict[str, Any]:
+        from . import objects
+
+        return objects.remove(name)
+
     def cmd_play(self) -> dict[str, Any]:
         self.playing = True
         return {"playing": True}

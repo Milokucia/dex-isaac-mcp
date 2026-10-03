@@ -42,7 +42,8 @@ mcp = MCPServer(
         "Joint targets are NORMALIZED: 0 = a joint's lower limit, 1 = its upper limit. "
         "For requests like 'go home' or 'make a fist', prefer sim_set_pose with a pose "
         "from sim_list_poses over guessing raw values, then sim_step and sim_screenshot "
-        "to verify.\n\n"
+        "to verify. Add props (a table, a ball to grasp) with sim_spawn_object and read "
+        "where they ended up with sim_list_objects.\n\n"
         "stiffness, damping, effort and coupling ratios are live (sim_set_params, "
         "sim_set_coupling, sim_sweep). The USD, solver iterations and self-collision are "
         "spawn properties: change them with sim_reload.\n\n"
@@ -299,6 +300,40 @@ def sim_set_coupling(ratios: dict[str, float]) -> dict[str, Any]:
     ratio x its leader's target.
     """
     return _call("set_coupling", ratios=ratios)
+
+
+@mcp.tool()
+def sim_spawn_object(name: str, shape: str, pos: list[float], size: list[float] | None = None,
+                     radius: float | None = None, height: float | None = None,
+                     mass: float = 0.1, static: bool = False, kinematic: bool = False,
+                     color: list[float] | None = None, friction: float = 0.8,
+                     rot: list[float] | None = None, usd: str | None = None,
+                     scale: list[float] | None = None) -> dict[str, Any]:
+    """Add a prop to the live scene: a primitive or a USD file, with collision.
+
+    shape: cuboid (size=[x,y,z]), sphere (radius), cylinder / capsule / cone
+    (radius, height), or usd (usd=<path>, optional scale). Units are meters and kg.
+    static=True: a fixed collider (a table, a wall). kinematic=True: a rigid body
+    that contact cannot move. rot is a (w, x, y, z) quaternion. color is RGB 0..1.
+    Spawns at /World/Objects/<name>; sim_step to let it fall and settle.
+    """
+    args = {k: v for k, v in dict(
+        name=name, shape=shape, pos=pos, size=size, radius=radius, height=height,
+        mass=mass, static=static, kinematic=kinematic, color=color, friction=friction,
+        rot=rot, usd=usd, scale=scale).items() if v is not None}
+    return _call("spawn_object", **args)
+
+
+@mcp.tool()
+def sim_list_objects() -> dict[str, Any]:
+    """Every spawned prop with its current world pose (pos in m, rot as w, x, y, z)."""
+    return _call("list_objects")
+
+
+@mcp.tool()
+def sim_remove_object(name: str) -> dict[str, Any]:
+    """Delete a spawned prop."""
+    return _call("remove_object", name=name)
 
 
 @mcp.tool()

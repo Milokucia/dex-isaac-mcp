@@ -63,6 +63,10 @@ if args.gui:
 elif not getattr(args, "headless", False):
     args.headless = True
 
+# Render even when headless. Without it PhysX never registers a prop spawned
+# at runtime (sim_spawn_object): it neither falls nor reports a pose.
+args.enable_cameras = True
+
 app_launcher = AppLauncher(args)
 simulation_app = app_launcher.app
 

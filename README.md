@@ -12,9 +12,12 @@ Kit takes tens of seconds to boot. If every experiment is a fresh launch, most o
                           └─ one articulation, described by a robot JSON
 ```
 
+**How it differs from other Isaac Sim MCP servers:** those mostly build scenes from language ("add a table and a Franka"). This one is a workbench for an agent that tunes and debugs a robot: it measures (range tests, tracking error, parameter sweeps that restore the original value) and runs training. Scene props are supported, but a scene builder is not the point.
+
 - **Any articulated robot.** Point it at a USD and a small JSON config. Franka and Allegro examples are included.
 - **Normalized joint control.** Targets are `0..1`, where 0 is a joint's lower limit and 1 its upper limit, so agents don't need to know radians or meters.
 - **Named poses** per robot (`home`, `fist`, …), which can be blended part-way.
+- **Props:** spawn a table, a ball or a USD into the running scene and read back where they settle.
 - **Measurements:** joint state, per-joint travel and tracking error, a range test that finds blocked joints, and parameter sweeps inside one session.
 - **Training control:** each run is a detached `docker compose run`. You can poll its status, TensorBoard scalars, checkpoints and logs.
 
@@ -93,6 +96,14 @@ docker compose run --rm simd scripts/simd.py --sliders --robot examples/robots/a
 | `sim_play` | Run continuously, or pause |
 | `sim_wave` | Sweep every driven joint through its range and return travel stats |
 | `sim_range_test` | Drive every joint from its lower limit toward a target and report the fraction of travel reached. Below 0.9 counts as blocked (self-collision, a binding linkage, too little effort) |
+
+### Scene
+
+| Tool | What it does |
+|---|---|
+| `sim_spawn_object` | Add a prop to the live scene: `cuboid`, `sphere`, `cylinder`, `capsule`, `cone` or a USD file, with collision. `static` for a fixed table or wall, `kinematic` for a body contact cannot move |
+| `sim_list_objects` | Every prop's current world pose |
+| `sim_remove_object` | Delete a prop |
 
 ### Tune
 
@@ -195,6 +206,7 @@ These are the constraints the code is built around. Most were learned by breakin
 - **The host side imports no Isaac code.** `protocol.py`, `robot.py` and `training.py` are stdlib-only. The MCP server adds only `mcp`. Nothing on the host needs isaaclab, torch or a GPU.
 - **Cache directories are committed with `.gitkeep`.** If Docker auto-creates a bind-mount source, it is root-owned, and Kit then dies with `registry cache path is not set` before any script runs.
 - **The base image is pinned by digest.** A re-pulled tag once shipped `/isaac-sim` as mode 750, and every non-root container lost its Python.
+- **The daemon always renders, even headless** (`enable_cameras`). Without rendering, PhysX never registers a prop spawned at runtime. Prop poses are read from fabric, because the USD transform and the PhysX CPU query both stay at the spawn pose, and creating a PhysX tensor view mid-simulation crashes CUDA.
 - **No floor for range tests** (`ground=False`) on anything whose links can reach the ground. Otherwise the test measures the floor, not the robot.
 
 ## Development
@@ -219,6 +231,7 @@ Tested against Isaac Lab 2.3.2 (Isaac Sim 5.x) and `mcp` 2.3, over the stdio pro
 
 - **Franka** and **Allegro** examples, plus a custom closed-linkage hand through a compose override: `sim_up`, poses, screenshots, `sim_range_test`, `sim_sweep` (restores the original value), `sim_down`.
 - Headless daemon: gains, frozen-parameter rejection, wave.
+- Props, GUI and headless: a sphere and a cylinder dropped onto a static table settle at exactly table height plus their radius and half-height.
 
 Not yet verified end to end: the `train_*` tools against Isaac Lab's stock skrl script. Issues and PRs are welcome.
 
