@@ -14,6 +14,6 @@ FROM nvcr.io/nvidia/isaac-lab:2.3.2@sha256:388dbc806f48359a964cb9f807feb226da95d
 USER root
 RUN chmod o+rx /isaac-sim
 
-WORKDIR /workspace/isaac-sim-mcp
+WORKDIR /workspace/dex-isaac-mcp
 ENTRYPOINT ["/workspace/isaaclab/isaaclab.sh", "-p"]
 CMD ["scripts/simd.py", "--headless"]

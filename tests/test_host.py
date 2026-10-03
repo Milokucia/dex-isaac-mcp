@@ -7,9 +7,9 @@ import threading
 import unittest
 from pathlib import Path
 
-from isaac_sim_mcp import training
-from isaac_sim_mcp.protocol import Client, LineReader, ProtocolError, encode
-from isaac_sim_mcp.robot import Robot, match, resolve_pose
+from dex_isaac_mcp import training
+from dex_isaac_mcp.protocol import Client, LineReader, ProtocolError, encode
+from dex_isaac_mcp.robot import Robot, match, resolve_pose
 
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples" / "robots"
 

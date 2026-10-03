@@ -27,7 +27,7 @@ from typing import Any
 
 # Under the repo's bind mount this resolves to the same file on both sides:
 #   host       <repo>/.cache/simd.sock
-#   container  /workspace/isaac-sim-mcp/.cache/simd.sock
+#   container  /workspace/dex-isaac-mcp/.cache/simd.sock
 # ISAAC_MCP_SOCKET overrides it (e.g. for a non-editable install, or a repo
 # path long enough to hit the AF_UNIX limit below).
 DEFAULT_SOCKET = Path(

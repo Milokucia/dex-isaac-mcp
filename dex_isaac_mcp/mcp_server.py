@@ -7,7 +7,7 @@ parameter change costs a frame instead of a full Kit relaunch.
 
 Register with Claude Code (from the repo root):
 
-    claude mcp add isaac -- python -m isaac_sim_mcp
+    claude mcp add isaac -- python -m dex_isaac_mcp
 
 Nothing here starts Kit until sim_up is called.
 """

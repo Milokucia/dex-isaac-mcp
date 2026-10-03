@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "isaac-sim-mcp"
+name = "dex-isaac-mcp"
 version = "0.1.0"
 description = "MCP server that drives a live, persistent Isaac Sim session and Isaac Lab training runs"
 readme = "README.md"
@@ -16,10 +16,10 @@ dependencies = ["mcp>=2.3"]
 metrics = ["tensorboard"]
 
 [project.scripts]
-isaac-sim-mcp = "isaac_sim_mcp.mcp_server:main"
+dex-isaac-mcp = "dex_isaac_mcp.mcp_server:main"
 
 [tool.setuptools]
-packages = ["isaac_sim_mcp", "isaac_sim_mcp.daemon"]
+packages = ["dex_isaac_mcp", "dex_isaac_mcp.daemon"]
 
 [tool.ruff]
 line-length = 110

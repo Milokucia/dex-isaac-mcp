@@ -5,8 +5,8 @@ Runs INSIDE the Isaac Lab container (or any Isaac Lab python):
     scripts/simd.py --robot examples/robots/franka.json --gui
     scripts/simd.py --usd /path/to/robot.usd --headless
 
-then drive it from the host through the MCP server (isaac_sim_mcp/mcp_server.py)
-or isaac_sim_mcp.protocol.Client.
+then drive it from the host through the MCP server (dex_isaac_mcp/mcp_server.py)
+or dex_isaac_mcp.protocol.Client.
 
 Screenshots need a real viewport: pass --gui (and run `xhost +local:docker`
 on the host once). Everything else works headless.
@@ -25,12 +25,12 @@ sys.stdout.reconfigure(line_buffering=True)
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
 
-from isaac_sim_mcp.protocol import DEFAULT_SOCKET  # noqa: E402  (stdlib-only)
-from isaac_sim_mcp.robot import Robot  # noqa: E402  (stdlib-only)
+from dex_isaac_mcp.protocol import DEFAULT_SOCKET  # noqa: E402  (stdlib-only)
+from dex_isaac_mcp.robot import Robot  # noqa: E402  (stdlib-only)
 
 parser = argparse.ArgumentParser(description="Persistent Isaac Sim daemon.")
 parser.add_argument("--robot", default=None,
-                    help="robot config JSON (see isaac_sim_mcp/robot.py). "
+                    help="robot config JSON (see dex_isaac_mcp/robot.py). "
                          "Default: examples/robots/franka.json unless --usd is given")
 parser.add_argument("--usd", default=None,
                     help="override the config's USD (or use a bare USD with every joint driven)")
@@ -67,8 +67,8 @@ app_launcher = AppLauncher(args)
 simulation_app = app_launcher.app
 
 # Only now is isaaclab importable.
-from isaac_sim_mcp.daemon.scene import SceneParams  # noqa: E402
-from isaac_sim_mcp.daemon.server import SimDaemon  # noqa: E402
+from dex_isaac_mcp.daemon.scene import SceneParams  # noqa: E402
+from dex_isaac_mcp.daemon.server import SimDaemon  # noqa: E402
 
 
 def _load_robot() -> Robot:
@@ -91,7 +91,7 @@ def _load_robot() -> Robot:
 
 
 def _attach_sliders(daemon) -> None:
-    from isaac_sim_mcp.daemon.sliders import build_slider_window
+    from dex_isaac_mcp.daemon.sliders import build_slider_window
 
     daemon._slider_window = build_slider_window(daemon)
     daemon.playing = True  # a slider panel over a paused sim looks broken

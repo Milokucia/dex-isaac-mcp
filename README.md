@@ -1,11 +1,11 @@
-# isaac-sim-mcp
+# dex-isaac-mcp
 
 An [MCP](https://modelcontextprotocol.io) server that lets an AI agent (Claude Code, or any MCP client) drive a **live, persistent Isaac Sim session** and launch **Isaac Lab training runs**.
 
 Kit takes tens of seconds to boot. If every experiment is a fresh launch, most of your time goes to waiting. Here Kit starts once inside a daemon and stays up. Each tool call lands in that running session, so changing a gain, stepping physics or taking a screenshot costs a frame, not a relaunch.
 
 ```
- MCP client ──stdio──▶ isaac_sim_mcp (host, plain python)
+ MCP client ──stdio──▶ dex_isaac_mcp (host, plain python)
                           │  newline-delimited JSON over a Unix socket
                           ▼
                        scripts/simd.py (Isaac Lab container, Kit stays up)
@@ -28,7 +28,7 @@ Kit takes tens of seconds to boot. If every experiment is a fresh launch, most o
 ## Quick start
 
 ```bash
-git clone <this repo> isaac-sim-mcp && cd isaac-sim-mcp
+git clone <this repo> dex-isaac-mcp && cd dex-isaac-mcp
 
 # 1. Build the image (Isaac Lab 2.3.2 base, pinned by digest)
 cd docker && docker compose build && cd ..
@@ -37,7 +37,7 @@ cd docker && docker compose build && cd ..
 pip install -e .            # add [metrics] for train_metrics: pip install -e '.[metrics]'
 
 # 3. Register it with Claude Code
-claude mcp add isaac -- python -m isaac_sim_mcp
+claude mcp add isaac -- python -m dex_isaac_mcp
 
 # 4. Allow the container to open windows (once per login; needed for screenshots)
 xhost +local:docker
@@ -45,7 +45,7 @@ xhost +local:docker
 
 Then ask the agent something like *"start the sim with the Franka, move it to ready and show me a screenshot."* It will call `sim_up`, `sim_set_pose`, `sim_step` and `sim_screenshot`.
 
-Other MCP clients can launch `python -m isaac_sim_mcp` (or the `isaac-sim-mcp` script) over stdio.
+Other MCP clients can launch `python -m dex_isaac_mcp` (or the `dex-isaac-mcp` script) over stdio.
 
 The first `sim_up` takes several minutes: Kit builds its shader cache and downloads Nucleus assets. Later starts are much faster.
 
@@ -184,10 +184,10 @@ python -m unittest discover tests   # host-side tests: no Isaac, no GPU
 ruff check .
 ```
 
-`isaac_sim_mcp/protocol.Client` is a handy debugging client:
+`dex_isaac_mcp/protocol.Client` is a handy debugging client:
 
 ```python
-from isaac_sim_mcp.protocol import Client
+from dex_isaac_mcp.protocol import Client
 with Client() as c:
     print(c.call("status"))
     c.call("set_pose", name="ready"); c.call("step", n=240)
