@@ -1,0 +1,33 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Milokucia/dex-isaac-mcp",
+  "title": "Isaac Sim robot workbench",
+  "description": "Drive a live Isaac Sim session: any robot, poses, gain tuning, range tests, Isaac Lab training.",
+  "repository": {
+    "url": "https://github.com/Milokucia/dex-isaac-mcp",
+    "source": "github"
+  },
+  "version": "0.1.1",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "dex-isaac-mcp",
+      "version": "0.1.1",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "ISAAC_MCP_HOME",
+          "isRequired": true,
+          "description": "Path to a clone of github.com/Milokucia/dex-isaac-mcp; the Isaac Sim daemon runs from its docker/ directory"
+        },
+        {
+          "name": "ISAAC_MCP_ROBOT",
+          "isRequired": false,
+          "description": "Robot config JSON that sim_up loads by default (container path)"
+        }
+      ]
+    }
+  ]
+}

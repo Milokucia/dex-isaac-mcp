@@ -1,5 +1,7 @@
 # dex-isaac-mcp
 
+<!-- mcp-name: io.github.Milokucia/dex-isaac-mcp -->
+
 An [MCP](https://modelcontextprotocol.io) server that lets an AI agent (Claude Code, or any MCP client) drive a **live, persistent Isaac Sim session** and launch **Isaac Lab training runs**.
 
 Kit takes tens of seconds to boot. If every experiment is a fresh launch, most of your time goes to waiting. Here Kit starts once inside a daemon and stays up. Each tool call lands in that running session, so changing a gain, stepping physics or taking a screenshot costs a frame, not a relaunch.
