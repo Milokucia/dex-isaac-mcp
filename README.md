@@ -189,7 +189,8 @@ Out of the box, `train_start` runs Isaac Lab's stock skrl script inside the `isa
 | `ISAAC_MCP_TRAIN_WORKDIR` | `/workspace/isaaclab` |
 | `ISAAC_MCP_TRAIN_SCRIPT` | `scripts/reinforcement_learning/skrl/train.py` |
 | `ISAAC_MCP_LOGS_DIR` | `<repo>/logs` (mounted at `/workspace/isaaclab/logs`) |
-| `ISAAC_MCP_RUN_NAME_ARG` | `agent.experiment.experiment_name={run_name}` (empty = don't pass one) |
+| `ISAAC_MCP_RUN_NAME_ARG` | `agent.agent.experiment.experiment_name={run_name}` (empty = don't pass one) |
+| `ISAAC_MCP_TRAIN_ARGS` | `hydra.run.dir=/tmp/hydra hydra.output_subdir=null`: appended to every run. The stock script otherwise writes Hydra's `outputs/` into the root-owned `/workspace/isaaclab` and dies. Set it empty for a non-Hydra script |
 | `ISAAC_MCP_SIMD_SERVICE` | `simd` |
 | `ISAAC_MCP_ROBOT` | robot config `sim_up` loads when none is given (unset: Franka example) |
 | `ISAAC_MCP_SOCKET` | `<repo>/.cache/simd.sock` |
@@ -233,7 +234,9 @@ Tested against Isaac Lab 2.3.2 (Isaac Sim 5.x) and `mcp` 2.3, over the stdio pro
 - Headless daemon: gains, frozen-parameter rejection, wave.
 - Props, GUI and headless: a sphere and a cylinder dropped onto a static table settle at exactly table height plus their radius and half-height.
 
-Not yet verified end to end: the `train_*` tools against Isaac Lab's stock skrl script. Issues and PRs are welcome.
+- Training, against Isaac Lab's stock skrl script: `Isaac-Cartpole-v0` launched, polled, logged, checkpointed and read back through every `train_*` tool, plus a run stopped mid-training. skrl's `write_interval: auto` writes no TensorBoard scalars on a very short run (5 iterations), so `train_metrics` comes back empty there; 50 iterations gives 18 tags.
+
+Issues and PRs are welcome.
 
 ## License
 

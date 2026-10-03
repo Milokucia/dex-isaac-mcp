@@ -16,7 +16,14 @@ your own launcher with environment variables:
     ISAAC_MCP_TRAIN_SCRIPT    script, relative to the workdir   (scripts/reinforcement_learning/skrl/train.py)
     ISAAC_MCP_LOGS_DIR        host dir the container logs into  (<repo>/logs)
     ISAAC_MCP_RUN_NAME_ARG    how the run name reaches the script, with {run_name}
-                              (agent.experiment.experiment_name={run_name}; empty = not passed)
+                              (agent.agent.experiment.experiment_name={run_name}; empty = not passed)
+    ISAAC_MCP_TRAIN_ARGS      args appended to every run, shell-split
+                              (hydra.run.dir=/tmp/hydra hydra.output_subdir=null; empty = none)
+
+The Hydra default exists because the stock script writes Hydra's outputs/
+into its working dir, /workspace/isaaclab, which is root-owned in the image
+and unwritable to the non-root container user: every run died at startup
+with PermissionError: 'outputs'.
 """
 
 from __future__ import annotations
@@ -24,6 +31,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shlex
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -37,7 +45,10 @@ WORKDIR = os.environ.get("ISAAC_MCP_TRAIN_WORKDIR", "/workspace/isaaclab")
 SCRIPT = os.environ.get("ISAAC_MCP_TRAIN_SCRIPT", "scripts/reinforcement_learning/skrl/train.py")
 LOGS_DIR = Path(os.environ.get("ISAAC_MCP_LOGS_DIR") or _ROOT / "logs")
 RUN_NAME_ARG = os.environ.get("ISAAC_MCP_RUN_NAME_ARG",
-                              "agent.experiment.experiment_name={run_name}")
+                              "agent.agent.experiment.experiment_name={run_name}")
+
+TRAIN_ARGS = shlex.split(os.environ.get("ISAAC_MCP_TRAIN_ARGS",
+                                        "hydra.run.dir=/tmp/hydra hydra.output_subdir=null"))
 
 CONTAINER_PREFIX = "isaacmcp-train-"
 
@@ -117,6 +128,7 @@ def start(task: str, num_envs: int | None = None, max_iterations: int | None = N
     if checkpoint is not None:
         cmd += ["--checkpoint", checkpoint]
     cmd += list(extra_args or [])
+    cmd += TRAIN_ARGS
     if RUN_NAME_ARG:
         cmd.append(RUN_NAME_ARG.format(run_name=run_name))
 
@@ -258,9 +270,12 @@ def metrics(run_name: str, tag: str | None = None, max_points: int = 200) -> dic
     if tag not in tags:
         raise TrainingError(f"no tag {tag!r} in {run_name!r}; available: {tags}")
     events = acc.Scalars(tag)
-    if len(events) > max_points:
-        stride = -(-len(events) // max_points)
-        # Keep the final point: it is the one anyone polling a run wants.
-        events = events[::stride] + ([events[-1]] if (len(events) - 1) % stride else [])
+    n = len(events)
+    if n > max_points >= 2:
+        # Evenly spaced, always including the first and the final point: the
+        # final one is what anyone polling a run wants.
+        events = [events[round(i * (n - 1) / (max_points - 1))] for i in range(max_points)]
+    elif n > max_points:
+        events = events[-max_points:]
     return {"run_name": run_name, "tag": tag,
             "points": [{"step": e.step, "value": e.value} for e in events]}
