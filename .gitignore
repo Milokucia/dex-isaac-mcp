@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+logs/*
+!logs/.gitkeep
+.cache/**
+!.cache/**/
+!.cache/**/.gitkeep
+.ruff_cache/

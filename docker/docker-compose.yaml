@@ -1,0 +1,53 @@
+# Two services from one image:
+#
+#   simd       the long-lived sim daemon the MCP server talks to (sim_up starts it)
+#   isaac-lab  one-shot jobs; train_start launches one container per training run
+#
+#   docker compose build
+#   xhost +local:docker                                  # once per login, for --gui
+#   docker compose run --rm simd scripts/simd.py --gui   # foreground, to see errors
+
+services:
+  isaac-lab:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: isaac-sim-mcp:latest
+    # Run as the host user so the socket and everything written into the
+    # bind-mounted repo is owned by you, not root. Root-owned output cannot be
+    # deleted without sudo. uid/gid 1000 is the image's `ubuntu` user; if your
+    # ids differ:  export DOCKER_UID=$(id -u) DOCKER_GID=$(id -g)
+    user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
+    environment:
+      - DISPLAY=${DISPLAY}
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - ACCEPT_EULA=Y
+      - PRIVACY_CONSENT=Y
+    volumes:
+      - ..:/workspace/isaac-sim-mcp
+      # Isaac Lab's stock scripts log to ./logs relative to /workspace/isaaclab.
+      - ../logs:/workspace/isaaclab/logs
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      # Host bind mounts, not named volumes: a fresh named volume inherits the
+      # image path's root ownership and is unwritable to a non-root container.
+      # The dirs are committed with .gitkeep so Docker never auto-creates them
+      # (an auto-created bind source is root-owned, which is the same bug).
+      # Without a writable ~/.cache Kit dies during extension solving with
+      # "registry cache path is not set", long before any script runs.
+      - ../.cache/kit:/isaac-sim/kit/cache
+      - ../.cache/kit-data:/isaac-sim/kit/data
+      - ../.cache/kit-logs:/isaac-sim/kit/logs
+      - ../.cache/home-cache:/home/ubuntu/.cache
+      - ../.cache/home-local:/home/ubuntu/.local
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  simd:
+    extends:
+      service: isaac-lab
+    command: scripts/simd.py --gui

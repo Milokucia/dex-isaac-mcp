@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "isaac-sim-mcp"
+version = "0.1.0"
+description = "MCP server that drives a live, persistent Isaac Sim session and Isaac Lab training runs"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+# Host side only. The daemon runs inside Isaac Lab's own python (see docker/).
+dependencies = ["mcp>=2.3"]
+
+[project.optional-dependencies]
+metrics = ["tensorboard"]
+
+[project.scripts]
+isaac-sim-mcp = "isaac_sim_mcp.mcp_server:main"
+
+[tool.setuptools]
+packages = ["isaac_sim_mcp", "isaac_sim_mcp.daemon"]
+
+[tool.ruff]
+line-length = 110
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]

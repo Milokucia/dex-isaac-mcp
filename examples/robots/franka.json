@@ -1,0 +1,19 @@
+{
+  "name": "franka",
+  "usd": "{ISAACLAB_NUCLEUS_DIR}/Robots/FrankaEmika/panda_instanceable.usd",
+  "fix_root_link": true,
+  "spawn_pos": [0.0, 0.0, 0.0],
+  "init_joint_pos": {"panda_joint1": 0.0, "panda_joint2": -0.569, "panda_joint3": 0.0, "panda_joint4": -2.810,
+                     "panda_joint5": 0.0, "panda_joint6": 3.037, "panda_joint7": 0.741, "panda_finger_joint.*": 0.04},
+  "driven_joints": ["panda_joint[1-7]", "panda_finger_joint.*"],
+  "actuator": {"stiffness": 400.0, "damping": 40.0, "effort": 87.0},
+  "camera": {"eye": [1.8, 1.8, 1.4], "target": [0.0, 0.0, 0.4]},
+  "poses": {
+    "home":     {"panda_joint1": 0.5, "panda_joint2": 0.339, "panda_joint3": 0.5, "panda_joint4": 0.087,
+                 "panda_joint5": 0.5, "panda_joint6": 0.810, "panda_joint7": 0.628, "panda_finger_joint.*": 1.0},
+    "ready":    {"panda_joint1": 0.5, "panda_joint2": 0.277, "panda_joint3": 0.5, "panda_joint4": 0.238,
+                 "panda_joint5": 0.5, "panda_joint6": 0.421, "panda_joint7": 0.635, "panda_finger_joint.*": 1.0},
+    "open_gripper":  {"panda_finger_joint.*": 1.0},
+    "close_gripper": {"panda_finger_joint.*": 0.0}
+  }
+}
