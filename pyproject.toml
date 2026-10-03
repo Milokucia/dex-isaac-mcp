@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dex-isaac-mcp"
-version = "0.1.1"
+version = "0.1.2"
 description = "MCP server that drives a live, persistent Isaac Sim session and Isaac Lab training runs"
 readme = "README.md"
 license = "MIT"
