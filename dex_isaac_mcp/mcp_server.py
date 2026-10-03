@@ -114,6 +114,11 @@ def sim_up(robot: str | None = None, usd: str | None = None, gui: bool = True,
         return {"already_up": True, **_call("status")}
     except ToolError:
         pass
+    if not (_COMPOSE_DIR / "docker-compose.yaml").is_file():
+        raise ToolError(
+            f"no docker-compose.yaml in {_COMPOSE_DIR}. The daemon runs from a clone of "
+            "https://github.com/Milokucia/dex-isaac-mcp: set ISAAC_MCP_HOME to its path "
+            "(or ISAAC_MCP_COMPOSE_DIR to its docker/ dir).")
 
     # A socket left by a hard-killed daemon would make the wait succeed against nothing.
     sock = Path(DEFAULT_SOCKET)

@@ -36,7 +36,7 @@ git clone <this repo> dex-isaac-mcp && cd dex-isaac-mcp
 # 1. Build the image (Isaac Lab 2.3.2 base, pinned by digest)
 cd docker && docker compose build && cd ..
 
-# 2. Install the host-side server (editable, so the socket path resolves into the repo)
+# 2. Install the host-side server, editable so it finds this clone
 pip install -e .            # add [metrics] for train_metrics: pip install -e '.[metrics]'
 
 # 3. Register it with Claude Code
@@ -47,6 +47,12 @@ xhost +local:docker
 ```
 
 Then ask the agent something like *"start the sim with the Franka, move it to ready and show me a screenshot."* It will call `sim_up`, `sim_set_pose`, `sim_step` and `sim_screenshot`.
+
+**From PyPI instead:** `pip install dex-isaac-mcp`. The daemon still runs from a clone (it needs `docker/` and `scripts/simd.py`), so point the server at it:
+
+```bash
+claude mcp add isaac -e ISAAC_MCP_HOME=/abs/path/dex-isaac-mcp -- dex-isaac-mcp
+```
 
 Other MCP clients can launch `python -m dex_isaac_mcp` (or the `dex-isaac-mcp` script) over stdio.
 
@@ -184,6 +190,7 @@ Out of the box, `train_start` runs Isaac Lab's stock skrl script inside the `isa
 
 | Variable | Default |
 |---|---|
+| `ISAAC_MCP_HOME` | the clone this package was installed from (editable install); **required for a PyPI install** |
 | `ISAAC_MCP_COMPOSE_DIR` | `<repo>/docker` |
 | `ISAAC_MCP_TRAIN_SERVICE` | `isaac-lab` |
 | `ISAAC_MCP_TRAIN_WORKDIR` | `/workspace/isaaclab` |

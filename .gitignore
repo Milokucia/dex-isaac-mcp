@@ -8,3 +8,5 @@ logs/*
 !.cache/**/
 !.cache/**/.gitkeep
 .ruff_cache/
+dist/
+build/

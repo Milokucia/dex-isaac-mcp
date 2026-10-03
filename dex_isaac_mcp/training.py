@@ -37,7 +37,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-_ROOT = Path(__file__).resolve().parents[1]
+from .protocol import REPO_ROOT as _ROOT
 
 COMPOSE_DIR = Path(os.environ.get("ISAAC_MCP_COMPOSE_DIR") or _ROOT / "docker")
 SERVICE = os.environ.get("ISAAC_MCP_TRAIN_SERVICE", "isaac-lab")

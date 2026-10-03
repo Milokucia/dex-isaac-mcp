@@ -25,6 +25,11 @@ import socket
 from pathlib import Path
 from typing import Any
 
+# The clone holding docker/ and scripts/simd.py. An editable install (or the
+# container, which mounts the clone) finds it from this file's location; a
+# PyPI install lives in site-packages and needs ISAAC_MCP_HOME.
+REPO_ROOT = Path(os.environ.get("ISAAC_MCP_HOME") or Path(__file__).resolve().parents[1])
+
 # Under the repo's bind mount this resolves to the same file on both sides:
 #   host       <repo>/.cache/simd.sock
 #   container  /workspace/dex-isaac-mcp/.cache/simd.sock
@@ -32,7 +37,7 @@ from typing import Any
 # path long enough to hit the AF_UNIX limit below).
 DEFAULT_SOCKET = Path(
     os.environ.get("ISAAC_MCP_SOCKET")
-    or Path(__file__).resolve().parents[1] / ".cache" / "simd.sock"
+    or REPO_ROOT / ".cache" / "simd.sock"
 )
 
 # Kit's first frame after a cold start can take several seconds, and load_usd
