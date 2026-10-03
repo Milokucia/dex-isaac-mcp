@@ -18,8 +18,6 @@ Kit takes tens of seconds to boot. If every experiment is a fresh launch, most o
                           └─ one articulation, described by a robot JSON
 ```
 
-**How it differs from other Isaac Sim MCP servers:** those mostly build scenes from language ("add a table and a Franka"). This one is a workbench for an agent that tunes and debugs a robot: it measures (range tests, tracking error, parameter sweeps that restore the original value) and runs training. Scene props are supported, but a scene builder is not the point.
-
 - **Any articulated robot.** Point it at a USD and a small JSON config. Franka and Allegro examples are included.
 - **Normalized joint control.** Targets are `0..1`, where 0 is a joint's lower limit and 1 its upper limit, so agents don't need to know radians or meters.
 - **Named poses** per robot (`home`, `fist`, …), which can be blended part-way.
@@ -27,6 +25,27 @@ Kit takes tens of seconds to boot. If every experiment is a fresh launch, most o
 - **Props:** spawn a table, a ball or a USD into the running scene and read back where they settle.
 - **Measurements:** joint state, per-joint travel and tracking error, a range test that finds blocked joints, and parameter sweeps inside one session.
 - **Training control:** each run is a detached `docker compose run`. You can poll its status, TensorBoard scalars, checkpoints and logs.
+
+## How it differs from other Isaac Sim MCP servers
+
+[NVIDIA's official Isaac Sim MCP](https://docs.isaacsim.omniverse.nvidia.com/latest/development_tools/isaac_sim_mcp.html) is a documentation search for coding assistants, and works well alongside this one. Servers like [`isaacsim-mcp-server`](https://github.com/InstinctRobotics/isaacsim-mcp-server) and [`omni-mcp/isaac-sim-mcp`](https://github.com/omni-mcp/isaac-sim-mcp) run inside the Isaac Sim GUI and cover scene building broadly. This one runs headless, as a daemon in Docker, and focuses on tuning, measuring and training one robot.
+
+| | NVIDIA Isaac Sim MCP | In-GUI servers (`isaacsim-mcp-server`, `omni-mcp`) | **dex-isaac-mcp** |
+|---|---|---|---|
+| What it is | Docs and code search | Kit extension inside a running Isaac Sim | External daemon; Kit stays up in a container |
+| Controls the simulation | No | Yes | Yes |
+| Headless / remote GPU box | n/a | Needs the GUI | Yes: headless capture, Docker, Unix socket |
+| Scene building (lights, materials, sensors, asset library) | n/a | Broad | Minimal: primitive and USD props |
+| Robot setup | n/a | Built-in robot library | Any USD plus a small JSON config (joints, poses, couplings, gains) |
+| Measurement | n/a | Joint and prim state | Range tests that find blocked joints, tracking error, sweeps that restore the original value |
+| Live tuning | n/a | Not documented | PD gains, effort, software mimic couplings |
+| Isaac Lab training | n/a | Not documented | Launch, poll, TensorBoard metrics, checkpoints, stop |
+| Recording | n/a | Camera captures | Captioned GIFs from an auto-framed camera, headless |
+| Platform | Any | Wherever Isaac Sim runs | Linux, NVIDIA GPU, Docker, NGC |
+
+**Pick an in-GUI server** to build a scene by talking to it, interactively, with a wide robot and asset library.
+
+**Pick this one** to have an agent tune, debug and train a specific robot (your own, from a USD), unattended or on a remote box, with numbers it can act on instead of only screenshots.
 
 ## Requirements
 
