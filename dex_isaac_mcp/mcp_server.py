@@ -29,6 +29,8 @@ from .protocol import DEFAULT_SOCKET, Client, ProtocolError
 _COMPOSE_DIR = training.COMPOSE_DIR
 _SIMD_SERVICE = os.environ.get("ISAAC_MCP_SIMD_SERVICE", "simd")
 _SIMD_CONTAINER = "isaacmcp-simd"
+# Robot config sim_up loads when none is passed (container path, relative to the repo).
+_DEFAULT_ROBOT = os.environ.get("ISAAC_MCP_ROBOT")
 
 mcp = MCPServer(
     name="isaac",
@@ -88,7 +90,7 @@ def sim_up(robot: str | None = None, usd: str | None = None, gui: bool = True,
     """Start the daemon container and wait until it answers. Idempotent.
 
     robot: a robot config JSON, path relative to the repo root
-    (e.g. examples/robots/franka.json). usd: a USD path instead of / overriding
+    (e.g. examples/robots/franka.json); defaults to $ISAAC_MCP_ROBOT. usd: a USD path instead of / overriding
     the config's (every joint driven if no config). gui=True is needed for
     sim_screenshot; the host must have run `xhost +local:docker` once.
     ground=False spawns without a floor (use for range tests).
@@ -109,6 +111,7 @@ def sim_up(robot: str | None = None, usd: str | None = None, gui: bool = True,
 
     cmd = ["docker", "compose", "run", "-d", "--rm", "--name", _SIMD_CONTAINER,
            _SIMD_SERVICE, "scripts/simd.py", "--gui" if gui else "--headless"]
+    robot = robot or _DEFAULT_ROBOT
     if robot:
         cmd += ["--robot", robot]
     if usd:

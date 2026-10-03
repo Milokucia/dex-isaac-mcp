@@ -9,6 +9,11 @@ description = "MCP server that drives a live, persistent Isaac Sim session and I
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
+keywords = ["mcp", "model-context-protocol", "isaac-sim", "isaac-lab", "omniverse", "robotics",
+            "reinforcement-learning", "claude", "simulation", "physx"]
+
+[project.urls]
+Homepage = "https://github.com/Milokucia/dex-isaac-mcp"
 # Host side only. The daemon runs inside Isaac Lab's own python (see docker/).
 dependencies = ["mcp>=2.3"]
 

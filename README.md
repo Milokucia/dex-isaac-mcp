@@ -148,6 +148,25 @@ A robot is one JSON file. Only `usd` is required. Unknown keys are rejected, so 
 | `solver` | Spawn properties. Changing them needs `sim_reload` |
 | `poses` | `{name: {joint_regex: 0..1}}`. Later patterns win, so `{".*": 0, "thumb.*": 1}` works. A pattern that matches no driven joint is an error |
 
+## Using your own robot without forking
+
+Keep the robot config and assets in your own repo, and add them to the container with a compose override that you list in `COMPOSE_FILE`. Set it in the MCP server's environment, using absolute paths:
+
+```yaml
+# my-robot/mcp-compose.yaml
+services:
+  simd:
+    volumes:
+      - /abs/path/my-robot:/workspace/my-robot
+```
+
+```bash
+claude mcp add isaac \
+  -e COMPOSE_FILE=/abs/path/dex-isaac-mcp/docker/docker-compose.yaml:/abs/path/my-robot/mcp-compose.yaml \
+  -e ISAAC_MCP_ROBOT=/workspace/my-robot/robot.json \
+  -- python -m dex_isaac_mcp
+```
+
 ## Training defaults
 
 Out of the box, `train_start` runs Isaac Lab's stock skrl script inside the `isaac-lab` service. It tags the run name onto the log directory (`logs/skrl/<experiment>/<timestamp>_ppo_torch_<run_name>/`), which the other `train_*` tools use to find the run. To use your own launcher, set these in the environment the MCP server starts in:
@@ -161,6 +180,7 @@ Out of the box, `train_start` runs Isaac Lab's stock skrl script inside the `isa
 | `ISAAC_MCP_LOGS_DIR` | `<repo>/logs` (mounted at `/workspace/isaaclab/logs`) |
 | `ISAAC_MCP_RUN_NAME_ARG` | `agent.experiment.experiment_name={run_name}` (empty = don't pass one) |
 | `ISAAC_MCP_SIMD_SERVICE` | `simd` |
+| `ISAAC_MCP_ROBOT` | robot config `sim_up` loads when none is given (unset: Franka example) |
 | `ISAAC_MCP_SOCKET` | `<repo>/.cache/simd.sock` |
 
 The script must accept `--task`, `--headless` and, when given, `--num_envs`, `--seed`, `--max_iterations` and `--checkpoint`. Tasks from your own extension need to be importable inside the container, either installed into the image or mounted.
