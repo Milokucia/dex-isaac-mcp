@@ -69,7 +69,9 @@ class SimDaemon:
         self.unit: torch.Tensor | None = None
 
         self._capturer = None
-        self._view_dir = [1.0, 0.0, 0.3]
+        # The capture camera starts on the same side as the config's viewport
+        # camera, so a robot whose front is not +x (e.g. a hand) is framed head-on.
+        self._view_dir = [e - t for e, t in zip(robot.camera_eye, robot.camera_target, strict=True)]
 
         self._pending: queue.Queue[_Request] = queue.Queue()
         self._stop = threading.Event()
