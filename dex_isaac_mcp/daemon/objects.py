@@ -132,3 +132,12 @@ def remove(name: str) -> dict[str, Any]:
         raise ValueError(f"no object named {name!r}; have {[p.GetName() for p in _bodies()]}")
     stage.RemovePrim(path)
     return {"removed": name}
+
+
+def remove_all() -> list[str]:
+    """Delete every spawned prop; returns their names."""
+    stage = omni.usd.get_context().get_stage()
+    names = [prim.GetName() for prim in _bodies()]
+    for name in names:
+        stage.RemovePrim(f"{ROOT}/{name}")
+    return names

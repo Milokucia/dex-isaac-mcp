@@ -7,7 +7,7 @@ imported after AppLauncher has started Kit.
 from __future__ import annotations
 
 import math
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -120,7 +120,9 @@ class RobotScene:
         self.robot = robot
         self.params = params
         self.prim_path = prim_path
-        self.couplings = list(robot.couplings)
+        # Copies: set_coupling mutates these, and sharing the robot's own
+        # objects would lose the configured ratios a reset restores.
+        self.couplings = [replace(c) for c in robot.couplings]
         # Called after every physics step (recording hooks in here, so range
         # tests and waves are recorded too, not only sim_step).
         self.post_step = None

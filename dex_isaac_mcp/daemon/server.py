@@ -198,6 +198,12 @@ class SimDaemon:
         self.scene = scene
         # Hold the pose the robot spawned in rather than snapping to all-lower.
         self.unit = scene.target_to_unit(scene.art.data.joint_pos[0, scene.driven_ids]).clone()
+        # The spawn state sim_reset returns to, so a bad experiment costs a few
+        # frames instead of a Kit restart.
+        self._home_q = scene.art.data.joint_pos[0].clone()
+        self._home_unit = self.unit.clone()
+        self._home_params = {k: getattr(self.params, k) for k in SceneParams.HOT}
+        self._home_couplings = {c.follower: c.ratio for c in scene.couplings}
         print(f"[simd] spawned {self.robot.name}: {len(scene.driven_names)} driven of "
               f"{scene.art.num_joints} joints; {self.params.to_dict()}", flush=True)
 
@@ -301,6 +307,49 @@ class SimDaemon:
         scene = self._require_scene()
         self._advance(int(n))
         return {"steps": scene.steps, "sim_time": scene.steps * self.dt}
+
+    def cmd_reset(self, keep_objects: bool = False, settle: int = 60,
+                  pos_tol: float = 5e-3) -> dict[str, Any]:
+        """Return to the spawn state without restarting Kit.
+
+        Props go first, so none is left pressing on a joint during the settle.
+        Then the gains and coupling ratios the daemon spawned with, then the
+        root and every joint written back to their spawn values at zero
+        velocity. The settle lets passive linkages close around that state;
+        the residual says whether they did. Spawn properties (USD, solver
+        iterations, self-collision) are untouched: those still need sim_reload,
+        and so does a scene whose state went non-finite.
+        """
+        from . import objects
+
+        scene = self._require_scene()
+        art = scene.art
+        removed = [] if keep_objects else objects.remove_all()
+        self.cmd_set_params(**self._home_params)
+        couplings = scene.set_coupling(self._home_couplings) if self._home_couplings else []
+
+        root = art.data.default_root_state.clone()
+        art.write_root_pose_to_sim(root[:, :7])
+        art.write_root_velocity_to_sim(root[:, 7:])
+        art.write_joint_state_to_sim(self._home_q.unsqueeze(0),
+                                     torch.zeros_like(self._home_q).unsqueeze(0))
+        self.unit = self._home_unit.clone()
+        # At least one step: before it, joint_pos is the state just written,
+        # so the residual below would read 0 whatever physics does.
+        self._advance(max(1, int(settle)))
+
+        q = art.data.joint_pos[0]
+        finite = bool(torch.isfinite(q).all() and torch.isfinite(art.data.joint_vel[0]).all())
+        res = float((q[scene.driven_ids] - self._home_q[scene.driven_ids]).abs().max())
+        scene.reset_stats()
+        ok = finite and res < pos_tol
+        out = {"ok": ok, "removed": removed, "params": self.params.to_dict(),
+               "couplings": couplings, "pos_residual": res, "finite": finite}
+        if not ok:
+            out["hint"] = ("state is not finite; sim_reload" if not finite else
+                           "a joint did not return to its spawn value; sim_reset again "
+                           "with a longer settle, or sim_reload")
+        return out
 
     def cmd_wave(self, n: int = 240) -> dict[str, Any]:
         """Run the scripted sweep for n steps and return travel stats."""

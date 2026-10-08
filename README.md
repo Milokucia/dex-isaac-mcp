@@ -107,6 +107,7 @@ docker compose run --rm simd scripts/simd.py --sliders --robot examples/robots/a
 | `sim_up` | Start the daemon container (`robot`, `usd`, `gui`, `ground`, `extra_args`) and wait until it answers. Does nothing if it is already up |
 | `sim_down` | Stop the daemon |
 | `sim_reload` | Restart with a different spawn property: robot, USD, `pos_iters`, self-collision |
+| `sim_reset` | Undo an experiment in a few frames: remove props, restore spawn gains and couplings, write joints and root back to their spawn state. `ok=False` means reload |
 
 ### Inspect
 
@@ -247,7 +248,7 @@ The script must accept `--task`, `--headless` and, when given, `--num_envs`, `--
 These are the constraints the code is built around. Most were learned by breaking them.
 
 - **Every Kit call happens on the main thread.** Kit, PhysX and USD are not thread-safe. Socket threads only parse JSON and queue requests, and the main loop executes them between physics steps. Answering from a reader thread appears to work, then corrupts the stage under load.
-- **Spawn properties are frozen.** Replacing a spawned articulation needs `SimulationContext.stop()`, which blocks on a timeline event that only advances while the Kit loop pumps. A command runs *on* that loop, so the call never returns. `omni.usd` `new_stage()` has the same trap. So the USD, solver iterations and self-collision need a restart (`sim_reload`), and gains stay live.
+- **Spawn properties are frozen.** Replacing a spawned articulation needs `SimulationContext.stop()`, which blocks on a timeline event that only advances while the Kit loop pumps. A command runs *on* that loop, so the call never returns. `omni.usd` `new_stage()` has the same trap. So the USD, solver iterations and self-collision need a restart (`sim_reload`), and gains stay live. Undoing an experiment does not: `sim_reset` writes the spawn state back in a few frames.
 - **A Unix socket, not TCP.** The repo is bind-mounted and the container runs as the host uid, so the host sees the socket file directly, with no port mapping. Paths are capped at 107 bytes (`AF_UNIX`). If your checkout is deep, set `ISAAC_MCP_SOCKET`.
 - **The host side imports no Isaac code.** `protocol.py`, `robot.py` and `training.py` are stdlib-only. The MCP server adds only `mcp`. Nothing on the host needs isaaclab, torch or a GPU.
 - **Cache directories are committed with `.gitkeep`.** If Docker auto-creates a bind-mount source, it is root-owned, and Kit then dies with `registry cache path is not set` before any script runs.

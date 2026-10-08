@@ -46,7 +46,9 @@ mcp = MCPServer(
         "where they ended up with sim_list_objects.\n\n"
         "stiffness, damping, effort and coupling ratios are live (sim_set_params, "
         "sim_set_coupling, sim_sweep). The USD, solver iterations and self-collision are "
-        "spawn properties: change them with sim_reload.\n\n"
+        "spawn properties: change them with sim_reload. To undo an experiment (props "
+        "knocked over, gains changed, a joint pushed off its limit), sim_reset returns "
+        "to the spawn state in a few frames; reload only if it reports ok=False.\n\n"
         "Training runs (train_*) are separate containers, not the daemon: train_start, "
         "poll train_status/train_metrics, read train_logs, train_stop. They keep running "
         "after this MCP session ends."
@@ -260,6 +262,20 @@ def sim_set_pose(name: str, amount: float = 1.0, from_current: bool = False) -> 
 def sim_step(n: int = 60) -> dict[str, Any]:
     """Advance the simulation n physics steps (dt from sim_status, default 1/120 s)."""
     return _call("step", n=n)
+
+
+@mcp.tool()
+def sim_reset(keep_objects: bool = False, settle: int = 60) -> dict[str, Any]:
+    """Undo an experiment without restarting Kit: back to the spawn state in a few frames.
+
+    Removes spawned props (unless keep_objects), restores the gains and
+    coupling ratios the daemon spawned with, writes every joint and the root
+    back to their spawn values at zero velocity, then settles `settle` steps.
+    ok=False with a hint means use sim_reload: a non-finite state, or a joint
+    that would not return. Spawn properties (USD, solver iterations,
+    self-collision) are not touched; those always need sim_reload.
+    """
+    return _call("reset", keep_objects=keep_objects, settle=settle)
 
 
 @mcp.tool()
